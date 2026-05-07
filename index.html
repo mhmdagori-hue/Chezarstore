@@ -124,10 +124,10 @@
 
     <script>
         let db = []; let cart = [];
-        const PRIV_ID = localStorage.getItem('CH_ULTRA_KEY_V2') || 'K-' + Math.random().toString(36).substr(2, 10);
-        localStorage.setItem('CH_ULTRA_KEY_V2', PRIV_ID);
+        const PRIV_ID = localStorage.getItem('CH_V7_KEY') || 'K-' + Math.random().toString(36).substr(2, 10);
+        localStorage.setItem('CH_V7_KEY', PRIV_ID);
 
-        function openP(id) { document.getElementById(id + 'Panel').classList.toggle('active'); }
+        function openP(id) { document.getElementById(id + 'Panel').classList.toggle('active'); if(id=='cart') renderBasket(); }
         function openAdmin() { if(prompt("الرمز:") === "1234") { openP('admin'); tab(1); } }
         
         function tab(n) {
@@ -150,12 +150,12 @@
                 chat: id ? db.find(x => x.id == id).chat : [] 
             };
             if(id) { const i = db.findIndex(x => x.id == id); db[i] = p; } else { db.push(p); }
-            localStorage.setItem('CH_ULTRA_DB_V2', JSON.stringify(db));
+            localStorage.setItem('CH_V7_DB', JSON.stringify(db));
             location.reload();
         }
 
         function init() {
-            const data = localStorage.getItem('CH_ULTRA_DB_V2');
+            const data = localStorage.getItem('CH_V7_DB');
             if(data) db = JSON.parse(data);
             renderStore();
         }
@@ -175,14 +175,9 @@
                         <input type="text" id="mCol-${p.id}" class="field manual-input" placeholder="اللون المطلوب">
                         ${p.type=='shoe'?`<select id="sz-${p.id}" class="field">
                             <option value="">المقاس</option>
-                            <option>36</option><option>37</option><option>38</option>
-                            <option>39</option><option>40</option><option>41</option><option>42</option>
+                            <option>36</option><option>37</option><option>38</option><option>39</option><option>40</option><option>41</option><option>42</option>
                         </select>`:''}
                         <button class="buy-btn" onclick="addToCart(${p.id})">أضف للسلة</button>
-                    </div>
-                    <div class="chat-box">
-                        <div class="chat-history">${myChat.map(m=>`<div class="msg u">${m.q}</div>${m.a?`<div class="msg a">✨ الرد: ${m.a}</div>`:''}`).join('')}</div>
-                        <div style="display:flex; gap:5px;"><input type="text" id="in-${p.id}" class="field" style="margin:0" placeholder="اسألي هنا..."><button onclick="sendQ(${p.id})" style="background:var(--accent); color:white; border:none; padding:0 10px; border-radius:10px; cursor:pointer;">إرسال</button></div>
                     </div>
                 </div>`;
             }).join('');
@@ -192,20 +187,9 @@
             const list = document.getElementById('admList');
             list.innerHTML = db.map(p => `
                 <div class="admin-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <b>${p.name}</b>
-                        <div>
-                            <button class="btn-edit" onclick="editItem(${p.id})">تعديل</button>
-                            <button class="btn-del" onclick="delItem(${p.id})">حذف</button>
-                        </div>
-                    </div>
-                    <hr>
-                    ${(p.chat || []).filter(m=>m.a==="").map((m,i)=>`
-                        <div style="font-size:12px; background:#f9f9f9; padding:5px; margin-top:5px; border-radius:8px;">
-                            ${m.q} <input type="text" id="ans-${p.id}-${i}" placeholder="الرد السري..">
-                            <button onclick="reply(${p.id},${i})">رد</button>
-                        </div>
-                    `).join('')}
+                    <b>${p.name}</b>
+                    <button class="btn-edit" onclick="editItem(${p.id})">تعديل</button>
+                    <button class="btn-del" onclick="delItem(${p.id})">حذف</button>
                 </div>`).join('');
         }
 
@@ -217,45 +201,45 @@
             document.getElementById('pUrl1').value = p.url1;
             document.getElementById('pUrl2').value = p.url2;
             document.getElementById('pType').value = p.type;
-            document.getElementById('saveBtn').innerText = "تحديث المنتج";
             tab(1);
         }
 
-        function reply(pId, i) {
-            const p = db.find(x=>x.id==pId); const pending = p.chat.filter(m=>m.a==="");
-            pending[i].a = document.getElementById(`ans-${pId}-${i}`).value;
-            localStorage.setItem('CH_ULTRA_DB_V2', JSON.stringify(db)); renderAdmin(); renderStore();
-        }
-
         function addToCart(id) {
-            const p = db.find(x=>x.id==id);
-            let c = document.getElementById('col-'+id).value; if(c=='other') c=document.getElementById('manCol-'+id).value;
-            let s = p.type=='shoe'?document.getElementById('sz-'+id).value:'';
-            if(!c) return alert("اختر اللون");
-            cart.push({...p, c, s}); document.getElementById('cartNum').innerText=cart.length; 
-            const total = cart.reduce((a,b)=>a+Number(b.price),0); document.getElementById('sumTotal').innerText=total;
-            document.getElementById('cartList').innerHTML = cart.map(x=>`<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee;"><span>${x.name} (${x.c} ${x.s})</span><b>${x.price} د.ل</b></div>`).join('');
-            openP('cart');
+            const item = db.find(x => x.id == id);
+            const col = document.getElementById('col-'+id).value;
+            const sz = item.type == 'shoe' ? document.getElementById('sz-'+id).value : '';
+            
+            if(!col || (item.type=='shoe' && !sz)) {
+                alert("يرجى اختيار اللون والمقاس");
+                return;
+            }
+
+            cart.push({ ...item, selectedCol: col, selectedSz: sz });
+            document.getElementById('cartNum').innerText = cart.length;
+            alert("تمت الإضافة للسلة بنجاح ✨");
         }
 
-        function delItem(id) { if(confirm("حذف؟")) { db=db.filter(x=>x.id!=id); localStorage.setItem('CH_ULTRA_DB_V2', JSON.stringify(db)); renderAdmin(); renderStore(); } }
-        function sendQ(id) {
-            const q = document.getElementById('in-'+id).value; if(!q) return;
-            db.find(x=>x.id==id).chat.push({uid:PRIV_ID, q, a:""});
-            localStorage.setItem('CH_ULTRA_DB_V2', JSON.stringify(db)); renderStore();
+        function renderBasket() {
+            const list = document.getElementById('cartList');
+            const total = cart.reduce((s, i) => s + Number(i.price), 0);
+            document.getElementById('sumTotal').innerText = total;
+            list.innerHTML = cart.map((x, index) => `
+                <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee;">
+                    <span>${x.name} (${x.selectedCol} ${x.selectedSz})</span>
+                    <b>${x.price} د.ل</b>
+                </div>
+            `).join('');
         }
-        function checkout() { 
+
+        function checkout() {
             const n = document.getElementById('uName').value;
             const ph = document.getElementById('uPhone').value;
-            if(!n || !ph || cart.length == 0) return alert("أكملي البيانات");
-            
-            let city = document.getElementById('uCity').value; if(city=='other') city = document.getElementById('manCity').value;
-            let pay = document.getElementById('uPay').value; if(pay=='other') pay = document.getElementById('manPay').value;
-
-            const msg = `*طلب جديد من CHEZAR*\nالاسم: ${n}\nالهاتف: ${ph}\nالمدينة: ${city}\nالدفع: ${pay}\n\nالطلبات:\n` + cart.map(x=>`- ${x.name} (${x.c} ${x.s})`).join('\n') + `\n\n*إجمالي المبلغ: ${document.getElementById('sumTotal').innerText} د.ل*`;
-            
+            if(!n || !ph || cart.length == 0) return alert("البيانات ناقصة");
+            const msg = `*طلب جديد CHEZAR*\nالاسم: ${n}\nالطلبات:\n` + cart.map(x=>`- ${x.name} (${x.selectedCol} ${x.selectedSz})`).join('\n') + `\nالإجمالي: ${document.getElementById('sumTotal').innerText} د.ل`;
             window.location.href = "https://wa.me/218921602805?text=" + encodeURIComponent(msg);
         }
+
+        function delItem(id) { if(confirm("حذف؟")) { db=db.filter(x=>x.id!=id); localStorage.setItem('CH_V7_DB', JSON.stringify(db)); renderAdmin(); renderStore(); } }
     </script>
 </body>
 </html>
