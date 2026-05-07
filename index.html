@@ -10,7 +10,6 @@
 
         body { font-family: 'Cairo', sans-serif; margin: 0; background: #ffffff; color: var(--dark); overflow-x: hidden; position: relative; }
 
-        /* اللوقو الخلفي (واضح واحترافي) */
         .bg-watermark {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 85%; height: 85%; background: url('https://i.ibb.co/6Rh4dh4p/IMG-0927.png') no-repeat center;
@@ -35,7 +34,6 @@
         .welcome-hero p { color: #666; font-size: 16px; margin-top: 10px; }
 
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px; padding: 20px 5% 100px; }
-
         .card { background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(8px); border-radius: 30px; overflow: hidden; border: 1px solid #eee; box-shadow: 0 10px 30px rgba(0,0,0,0.03); }
         
         .slider { width: 100%; aspect-ratio: 1/1.1; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
@@ -126,8 +124,8 @@
 
     <script>
         let db = []; let cart = [];
-        const PRIV_ID = localStorage.getItem('CH_ULTRA_KEY') || 'K-' + Math.random().toString(36).substr(2, 10);
-        localStorage.setItem('CH_ULTRA_KEY', PRIV_ID);
+        const PRIV_ID = localStorage.getItem('CH_ULTRA_KEY_V2') || 'K-' + Math.random().toString(36).substr(2, 10);
+        localStorage.setItem('CH_ULTRA_KEY_V2', PRIV_ID);
 
         function openP(id) { document.getElementById(id + 'Panel').classList.toggle('active'); }
         function openAdmin() { if(prompt("الرمز:") === "1234") { openP('admin'); tab(1); } }
@@ -152,12 +150,12 @@
                 chat: id ? db.find(x => x.id == id).chat : [] 
             };
             if(id) { const i = db.findIndex(x => x.id == id); db[i] = p; } else { db.push(p); }
-            localStorage.setItem('CH_ULTRA_DB', JSON.stringify(db));
+            localStorage.setItem('CH_ULTRA_DB_V2', JSON.stringify(db));
             location.reload();
         }
 
         function init() {
-            const data = localStorage.getItem('CH_ULTRA_DB');
+            const data = localStorage.getItem('CH_ULTRA_DB_V2');
             if(data) db = JSON.parse(data);
             renderStore();
         }
@@ -175,7 +173,11 @@
                             <option value="">اللون</option><option>أسود</option><option>أبيض</option><option value="other">يدوي</option>
                         </select>
                         <input type="text" id="mCol-${p.id}" class="field manual-input" placeholder="اللون المطلوب">
-                        ${p.type=='shoe'?`<select id="sz-${p.id}" class="field"><option value="">المقاس</option><option>37</option><option>38</option><option>39</option><option>40</option></select>`:''}
+                        ${p.type=='shoe'?`<select id="sz-${p.id}" class="field">
+                            <option value="">المقاس</option>
+                            <option>36</option><option>37</option><option>38</option>
+                            <option>39</option><option>40</option><option>41</option><option>42</option>
+                        </select>`:''}
                         <button class="buy-btn" onclick="addToCart(${p.id})">أضف للسلة</button>
                     </div>
                     <div class="chat-box">
@@ -222,32 +224,37 @@
         function reply(pId, i) {
             const p = db.find(x=>x.id==pId); const pending = p.chat.filter(m=>m.a==="");
             pending[i].a = document.getElementById(`ans-${pId}-${i}`).value;
-            localStorage.setItem('CH_ULTRA_DB', JSON.stringify(db)); renderAdmin(); renderStore();
+            localStorage.setItem('CH_ULTRA_DB_V2', JSON.stringify(db)); renderAdmin(); renderStore();
         }
 
         function addToCart(id) {
             const p = db.find(x=>x.id==id);
-            let c = document.getElementById('col-'+id).value; if(c=='other') c=document.getElementById('mCol-'+id).value;
+            let c = document.getElementById('col-'+id).value; if(c=='other') c=document.getElementById('manCol-'+id).value;
             let s = p.type=='shoe'?document.getElementById('sz-'+id).value:'';
             if(!c) return alert("اختر اللون");
             cart.push({...p, c, s}); document.getElementById('cartNum').innerText=cart.length; 
             const total = cart.reduce((a,b)=>a+Number(b.price),0); document.getElementById('sumTotal').innerText=total;
-            document.getElementById('cartList').innerHTML = cart.map(x=>`<div>${x.name} (${x.c}) - ${x.price} د.ل</div>`).join('');
+            document.getElementById('cartList').innerHTML = cart.map(x=>`<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee;"><span>${x.name} (${x.c} ${x.s})</span><b>${x.price} د.ل</b></div>`).join('');
             openP('cart');
         }
 
-        function delItem(id) { if(confirm("حذف؟")) { db=db.filter(x=>x.id!=id); localStorage.setItem('CH_ULTRA_DB', JSON.stringify(db)); renderAdmin(); renderStore(); } }
+        function delItem(id) { if(confirm("حذف؟")) { db=db.filter(x=>x.id!=id); localStorage.setItem('CH_ULTRA_DB_V2', JSON.stringify(db)); renderAdmin(); renderStore(); } }
         function sendQ(id) {
             const q = document.getElementById('in-'+id).value; if(!q) return;
             db.find(x=>x.id==id).chat.push({uid:PRIV_ID, q, a:""});
-            localStorage.setItem('CH_ULTRA_DB', JSON.stringify(db)); renderStore();
+            localStorage.setItem('CH_ULTRA_DB_V2', JSON.stringify(db)); renderStore();
         }
         function checkout() { 
             const n = document.getElementById('uName').value;
             const ph = document.getElementById('uPhone').value;
             if(!n || !ph || cart.length == 0) return alert("أكملي البيانات");
-            const msg = `*طلب جديد من CHEZAR*\nالاسم: ${n}\nالطلبات:\n` + cart.map(x=>`- ${x.name} (${x.c})`).join('\n') + `\nإجمالي: ${document.getElementById('sumTotal').innerText} د.ل`;
-            window.location.href = "https://wa.me/2189XXXXXXXX?text=" + encodeURIComponent(msg);
+            
+            let city = document.getElementById('uCity').value; if(city=='other') city = document.getElementById('manCity').value;
+            let pay = document.getElementById('uPay').value; if(pay=='other') pay = document.getElementById('manPay').value;
+
+            const msg = `*طلب جديد من CHEZAR*\nالاسم: ${n}\nالهاتف: ${ph}\nالمدينة: ${city}\nالدفع: ${pay}\n\nالطلبات:\n` + cart.map(x=>`- ${x.name} (${x.c} ${x.s})`).join('\n') + `\n\n*إجمالي المبلغ: ${document.getElementById('sumTotal').innerText} د.ل*`;
+            
+            window.location.href = "https://wa.me/218921602805?text=" + encodeURIComponent(msg);
         }
     </script>
 </body>
